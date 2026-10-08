@@ -100,7 +100,8 @@ small.t{display:block;font-weight:400;font-size:12px;margin-top:4px}
 <script>
 const SUPABASE_URL = "https://pdlqfuywmqubnlreqwkc.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_81UvQuLGPU8UrlYg4H9rSw_oKK7vy0F";
-const CATEGORIAS = ["Fibra de vidrio","Pintura","Drywall","Eléctrico","Plomería","Pisos","Carpintería","Otro"];
+const CATEGORIAS = [["Remodelación o acabados (incl. fibra de vidrio)","remodelacion"],["Pintura","pintura"],["Drywall","drywall"],["Eléctrico","electrico"],["Plomería","plomeria"],["Carpintería","carpinteria"],["Mantenimiento","mantenimiento"]];
+let catLabel = null;
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
 let user = null, paso = 1, lista = [], categoria = null;
@@ -114,7 +115,7 @@ function ir(n){
   $("barra").style.width = (n*33.4)+"%";
   $("paso").textContent = "Paso "+n+" de 3";
   if(n===3){
-    $("res").innerHTML = "<p><b>"+esc($("titulo").value.trim())+"</b></p><p>"+esc(categoria)+" · "+esc($("mun").value.trim())+"</p><p>"+lista.length+" foto(s)"+($("pres").value?" · Presupuesto $"+Number($("pres").value.replace(/\D/g,"")).toLocaleString("es-CO"):"")+"</p>";
+    $("res").innerHTML = "<p><b>"+esc($("titulo").value.trim())+"</b></p><p>"+esc(catLabel)+" · "+esc($("mun").value.trim())+"</p><p>"+lista.length+" foto(s)"+($("pres").value?" · Presupuesto $"+Number($("pres").value.replace(/\D/g,"")).toLocaleString("es-CO"):"")+"</p>";
   }
   window.scrollTo(0,0);
 }
@@ -150,9 +151,9 @@ $("arch").onchange = async e => {
   e.target.value=""; pintarFotos();
 };
 
-CATEGORIAS.forEach(c=>{
-  const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=c; b.setAttribute("aria-pressed","false");
-  b.onclick=()=>{ categoria=c; document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===b)); };
+CATEGORIAS.forEach(([etq,val])=>{
+  const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=etq; b.setAttribute("aria-pressed","false");
+  b.onclick=()=>{ categoria=val; catLabel=etq; document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===b)); };
   $("chips").append(b);
 });
 
