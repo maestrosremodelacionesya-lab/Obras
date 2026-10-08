@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mis obras</title>
+<style>
+:root{--ink:#14232b;--wall:#f3f4f2;--card:#fff;--line:#d3d8d4;--blue:#0f4c5c;--tape:#f2c230;--err:#b3261e;--ok:#1b6b3a}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--wall)}
+.tape{height:34px;background:var(--tape);background-image:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 12px),repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 60px);background-size:100% 10px,100% 18px;background-repeat:repeat-x;background-position:left bottom}
+main{max-width:480px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:25px;line-height:1.15;margin:6px 0 4px}
+.sub{margin:0 0 14px;color:#44545c}
+label{display:block;font-weight:600;margin:12px 0 6px}
+input{width:100%;padding:13px;border:1.5px solid var(--line);border-radius:10px;font:inherit;background:var(--card);color:var(--ink)}
+input:focus,button:focus-visible{outline:3px solid var(--tape);outline-offset:1px;border-color:var(--blue)}
+.go{width:100%;padding:15px;border:0;border-radius:12px;background:var(--blue);color:#fff;font:inherit;font-weight:700;font-size:16px;cursor:pointer;margin-top:12px}
+.sec{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);font:inherit;font-weight:600;color:var(--ink);cursor:pointer;margin-top:10px}
+.ver{background:none;border:0;color:var(--blue);font:inherit;text-decoration:underline;padding:8px 0;cursor:pointer}
+.obra{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px;margin-top:14px}
+.obra img{height:110px;border-radius:10px;margin-bottom:8px}
+.obra h2{font-size:18px;margin:0 0 4px}
+.meta{color:#44545c;font-size:14px;margin:2px 0}
+.cot{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px;background:var(--wall)}
+.cot.mejor{border-color:var(--ok);background:#e4f3ea}
+.precio{font-size:22px;font-weight:800}
+.tag{display:inline-block;background:var(--ok);color:#fff;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700;margin-left:6px;vertical-align:middle}
+.msg{margin:6px 0 0;font-size:15px}
+.lmsg,#msg{margin-top:12px;padding:12px 14px;border-radius:10px;font-weight:600;display:none;word-break:break-word;background:#fbe9e7;color:var(--err)}
+.hide{display:none}
+.vacio{text-align:center;color:#44545c;padding:24px 10px}
+</style>
+</head>
+<body>
+<div class="tape" aria-hidden="true"></div>
+<main>
+
+<section id="login" class="hide">
+  <h1>Entra a tus obras</h1>
+  <p class="sub">Usa el correo de tu cuenta de cliente.</p>
+  <label for="lc">Correo</label><input id="lc" type="email" autocomplete="email" inputmode="email">
+  <label for="lk">Clave</label><input id="lk" type="password" autocomplete="current-password">
+  <button class="ver" id="ver" type="button">Ver clave</button>
+  <button class="go" id="entrar">Entrar</button>
+  <div class="lmsg" id="lmsg" role="alert"></div>
+</section>
+
+<section id="bloqueo" class="hide">
+  <h1>Esta cuenta es de profesional</h1>
+  <p class="sub">Esta pantalla es para clientes. Como profesional, tu espacio es obras para cotizar.</p>
+  <button class="go" id="salir">Cerrar sesión</button>
+</section>
+
+<section id="app" class="hide">
+  <h1>Mis obras</h1>
+  <p class="sub">Compara las cotizaciones que recibes. La más económica aparece marcada.</p>
+  <div id="lista"></div>
+  <button class="sec" id="salir2">Cerrar sesión</button>
+  <div id="msg" role="alert"></div>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://pdlqfuywmqubnlreqwkc.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_81UvQuLGPU8UrlYg4H9rSw_oKK7vy0F";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+let user=null;
+function el(t,c,x){ const e=document.createElement(t); if(c) e.className=c; if(x!==undefined) e.textContent=x; return e; }
+function error(t){ const m=$("msg"); m.textContent=t; m.style.display="block"; }
+const pesos = n => "$"+Number(n).toLocaleString("es-CO");
+
+async function verCot(o, caja, btn){
+  btn.disabled=true; btn.textContent="Cargando...";
+  const {data,error:er}=await db.rpc("cotizaciones_de_mi_obra",{p_obra:o.id});
+  btn.disabled=false;
+  if(er){ btn.textContent="Ver cotizaciones"; return error("No pudimos cargar. Toma una captura: "+er.message); }
+  caja.innerHTML="";
+  if(!data.length){ btn.textContent="Actualizar"; caja.append(el("div","vacio","Aún no hay cotizaciones. Te avisaremos cuando lleguen.")); return; }
+  btn.textContent="Actualizar ("+data.length+")";
+  const min=Math.min(...data.map(c=>Number(c.precio_cop)));
+  data.forEach(c=>{
+    const d=el("div","cot"+(Number(c.precio_cop)===min?" mejor":""));
+    const p=el("div","precio",pesos(c.precio_cop));
+    if(Number(c.precio_cop)===min && data.length>1) p.append(el("span","tag","Más económica"));
+    d.append(p, el("div","meta",(c.usuario||"Profesional")+" · "+c.dias+" día(s)"), el("p","msg",c.mensaje||""));
+    caja.append(d);
+  });
+}
+
+async function cargar(){
+  $("lista").textContent="Cargando...";
+  const {data,error:er}=await db.from("obras").select("*").eq("cliente_id",user.id);
+  $("lista").textContent="";
+  if(er) return error("No pudimos cargar tus obras. Toma una captura: "+er.message);
+  if(!data.length){ $("lista").append(el("div","vacio","Aún no has publicado obras.")); return; }
+  data.sort((a,b)=>String(b.creado_en||"").localeCompare(String(a.creado_en||"")));
+  data.forEach(o=>{
+    const c=el("div","obra");
+    const f=Array.isArray(o.fotos)?o.fotos.find(u=>typeof u==="string"&&u.startsWith("https://")):null;
+    if(f){ const im=el("img"); im.src=f; im.alt="Foto de la obra"; c.append(im); }
+    c.append(el("h2","",o.titulo), el("div","meta",(o.municipio||"")+" · "+(o.estado||"")));
+    const caja=el("div"), b=el("button","go","Ver cotizaciones");
+    b.onclick=()=>verCot(o,caja,b);
+    c.append(b,caja); $("lista").append(c);
+  });
+}
+
+$("ver").onclick=()=>{ const k=$("lk"); k.type=k.type==="password"?"text":"password"; $("ver").textContent=k.type==="password"?"Ver clave":"Ocultar clave"; };
+$("entrar").onclick=async()=>{
+  const m=$("lmsg"); m.style.display="none";
+  const {error:er}=await db.auth.signInWithPassword({email:$("lc").value.trim().toLowerCase(),password:$("lk").value.trim()});
+  if(er){ m.textContent="No pudimos entrar: "+er.message; m.style.display="block"; return; }
+  iniciar();
+};
+async function salir(){ await db.auth.signOut(); iniciar(); }
+$("salir").onclick=salir; $("salir2").onclick=salir;
+
+async function iniciar(){
+  const {data}=await db.auth.getSession(); user=data.session?data.session.user:null;
+  let rol=null;
+  if(user){ const r=await db.from("perfiles").select("rol").eq("id",user.id).maybeSingle(); rol=r.data?r.data.rol:null; }
+  const esCli = rol==="cliente";
+  $("login").classList.toggle("hide",!!user);
+  $("bloqueo").classList.toggle("hide",!(user&&!esCli));
+  $("app").classList.toggle("hide",!(user&&esCli));
+  if(user&&esCli) cargar();
+}
+iniciar();
+</script>
+</body>
+</html>

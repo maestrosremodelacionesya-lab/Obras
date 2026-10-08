@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Publicar una obra</title>
+<style>
+:root{--ink:#14232b;--wall:#f3f4f2;--card:#fff;--line:#d3d8d4;--blue:#0f4c5c;--tape:#f2c230;--err:#b3261e;--ok:#1b6b3a}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--wall)}
+.tape{height:34px;background:var(--tape);background-image:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 12px),repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 60px);background-size:100% 10px,100% 18px;background-repeat:repeat-x;background-position:left bottom}
+main{max-width:440px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:25px;line-height:1.15;margin:6px 0 4px}
+.sub{margin:0 0 14px;color:#44545c}
+.prog{height:8px;background:var(--line);border-radius:4px;margin:0 0 6px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--blue);width:33%;transition:width .2s}
+.paso{font-size:14px;color:#44545c;margin-bottom:12px}
+label{display:block;font-weight:600;margin:14px 0 6px}
+input,textarea{width:100%;padding:14px;border:1.5px solid var(--line);border-radius:10px;font:inherit;background:var(--card);color:var(--ink)}
+textarea{min-height:100px;resize:vertical}
+input:focus,textarea:focus,button:focus-visible{outline:3px solid var(--tape);outline-offset:1px;border-color:var(--blue)}
+.go{width:100%;padding:16px;border:0;border-radius:12px;background:var(--blue);color:#fff;font:inherit;font-weight:700;font-size:17px;cursor:pointer;margin-top:16px}
+.go:disabled{opacity:.55}
+.sec{width:100%;padding:14px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);font:inherit;font-weight:600;color:var(--ink);cursor:pointer;margin-top:10px}
+.foto-btn{display:block;text-align:center;padding:28px 12px;border:2px dashed var(--blue);border-radius:14px;background:var(--card);color:var(--blue);font-weight:700;cursor:pointer}
+.foto-btn span{display:block;font-size:30px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.grid div{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--line)}
+.grid img{width:100%;height:100%;object-fit:cover}
+.grid button{position:absolute;top:4px;right:4px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(20,35,43,.85);color:#fff;font-size:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:10px 14px;border:1.5px solid var(--line);border-radius:999px;background:var(--card);font:inherit;color:var(--ink);cursor:pointer}
+.chip[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:#fff}
+.res{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:14px}
+.res p{margin:4px 0}
+#msg{margin-top:14px;padding:12px 14px;border-radius:10px;font-weight:600;display:none;word-break:break-word}
+#msg.err{display:block;background:#fbe9e7;color:var(--err)}
+#msg.ok{display:block;background:#e4f3ea;color:var(--ok)}
+.hide{display:none}
+small.t{display:block;font-weight:400;font-size:12px;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="tape" aria-hidden="true"></div>
+<main>
+
+<section id="login" class="hide">
+  <h1>Entra para publicar</h1>
+  <p class="sub">Usa el correo con el que te registraste.</p>
+  <label for="lc">Correo</label><input id="lc" type="email" autocomplete="email" inputmode="email">
+  <label for="lk">Clave</label><input id="lk" type="password" autocomplete="current-password">
+  <button class="go" id="entrar">Entrar</button>
+</section>
+
+<section id="flujo" class="hide">
+  <h1>Publicar una obra</h1>
+  <div class="prog" aria-hidden="true"><i id="barra"></i></div>
+  <div class="paso" id="paso">Paso 1 de 3</div>
+
+  <div id="p1">
+    <p class="sub">Sube fotos del lugar. Con buenas fotos recibes mejores cotizaciones.</p>
+    <label class="foto-btn" for="arch"><span>📷</span>Tomar o elegir fotos (máx. 5)</label>
+    <input id="arch" class="hide" type="file" accept="image/*" multiple>
+    <div class="grid" id="grid"></div>
+    <button class="go" id="sig1">Siguiente</button>
+  </div>
+
+  <div id="p2" class="hide">
+    <label for="titulo">¿Qué necesitas? (título corto)</label>
+    <input id="titulo" maxlength="80" placeholder="Ej: Instalar fibra de vidrio en sala">
+    <label>Tipo de trabajo</label>
+    <div class="chips" id="chips"></div>
+    <label for="desc">Cuéntanos más</label>
+    <textarea id="desc" maxlength="600" placeholder="Medidas aproximadas, estado de la pared, fechas..."></textarea>
+    <label for="mun">Ciudad o pueblo</label>
+    <input id="mun" autocomplete="address-level2">
+    <label for="pres">Presupuesto en pesos (opcional)</label>
+    <input id="pres" inputmode="numeric" placeholder="Ej: 1500000">
+    <button class="go" id="sig2">Siguiente</button>
+    <button class="sec" id="atras2">Atrás</button>
+  </div>
+
+  <div id="p3" class="hide">
+    <p class="sub">Revisa y publica. Las empresas verán tu obra y te cotizarán por el chat.</p>
+    <div class="res" id="res"></div>
+    <button class="go" id="pub">Publicar obra</button>
+    <button class="sec" id="atras3">Atrás</button>
+  </div>
+
+  <div id="fin" class="hide">
+    <h1>¡Obra publicada! ✅</h1>
+    <p class="sub">Pronto recibirás cotizaciones.</p>
+    <button class="go" id="otra">Publicar otra obra</button>
+  </div>
+  <div id="msg" role="status" aria-live="polite"></div>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://pdlqfuywmqubnlreqwkc.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_81UvQuLGPU8UrlYg4H9rSw_oKK7vy0F";
+const CATEGORIAS = ["Fibra de vidrio","Pintura","Drywall","Eléctrico","Plomería","Pisos","Carpintería","Otro"];
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+let user = null, paso = 1, lista = [], categoria = null;
+
+function aviso(t, c){ const m=$("msg"); m.className=c; m.textContent=t; }
+function limpiar(){ $("msg").className=""; $("msg").textContent=""; }
+
+function ir(n){
+  paso = n; limpiar();
+  ["p1","p2","p3"].forEach((id,i)=>$(id).classList.toggle("hide", i+1!==n));
+  $("barra").style.width = (n*33.4)+"%";
+  $("paso").textContent = "Paso "+n+" de 3";
+  if(n===3){
+    $("res").innerHTML = "<p><b>"+esc($("titulo").value.trim())+"</b></p><p>"+esc(categoria)+" · "+esc($("mun").value.trim())+"</p><p>"+lista.length+" foto(s)"+($("pres").value?" · Presupuesto $"+Number($("pres").value.replace(/\D/g,"")).toLocaleString("es-CO"):"")+"</p>";
+  }
+  window.scrollTo(0,0);
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function pintarFotos(){
+  const g=$("grid"); g.innerHTML="";
+  lista.forEach((f,i)=>{
+    const d=document.createElement("div"), im=document.createElement("img"), b=document.createElement("button");
+    im.src=f.prev; im.alt="Foto "+(i+1); b.textContent="✕"; b.setAttribute("aria-label","Quitar foto "+(i+1));
+    b.onclick=()=>{ URL.revokeObjectURL(f.prev); lista.splice(i,1); pintarFotos(); };
+    d.append(im,b); g.append(d);
+  });
+}
+function comprimir(file){
+  return new Promise((ok,fail)=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const r=Math.min(1,1280/Math.max(img.width,img.height)), c=document.createElement("canvas");
+      c.width=Math.round(img.width*r); c.height=Math.round(img.height*r);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url);
+      c.toBlob(b=>b?ok(b):fail(new Error("No se pudo leer la foto")),"image/jpeg",0.72);
+    };
+    img.onerror=()=>fail(new Error("No se pudo leer la foto")); img.src=url;
+  });
+}
+$("arch").onchange = async e => {
+  limpiar();
+  for(const f of e.target.files){
+    if(lista.length>=5){ aviso("Máximo 5 fotos.","err"); break; }
+    try{ const blob=await comprimir(f); lista.push({blob, prev:URL.createObjectURL(blob)}); }catch(x){ aviso(x.message,"err"); }
+  }
+  e.target.value=""; pintarFotos();
+};
+
+CATEGORIAS.forEach(c=>{
+  const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=c; b.setAttribute("aria-pressed","false");
+  b.onclick=()=>{ categoria=c; document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===b)); };
+  $("chips").append(b);
+});
+
+$("sig1").onclick=()=>{ if(!lista.length) return aviso("Agrega al menos una foto.","err"); ir(2); };
+$("sig2").onclick=()=>{
+  if($("titulo").value.trim().length<5) return aviso("Escribe un título de al menos 5 letras.","err");
+  if(!categoria) return aviso("Elige el tipo de trabajo.","err");
+  if(!$("mun").value.trim()) return aviso("Escribe tu ciudad o pueblo.","err");
+  ir(3);
+};
+$("atras2").onclick=()=>ir(1); $("atras3").onclick=()=>ir(2);
+
+$("pub").onclick = async () => {
+  limpiar(); $("pub").disabled=true; $("pub").textContent="Publicando...";
+  try{
+    const urls=[];
+    for(const [i,f] of lista.entries()){
+      const path=user.id+"/"+Date.now()+"-"+i+".jpg";
+      const {error}=await db.storage.from("obras-fotos").upload(path,f.blob,{contentType:"image/jpeg"});
+      if(error) throw error;
+      urls.push(db.storage.from("obras-fotos").getPublicUrl(path).data.publicUrl);
+    }
+    const fila={cliente_id:user.id, titulo:$("titulo").value.trim(), descripcion:$("desc").value.trim()||null, categoria, municipio:$("mun").value.trim(), fotos:urls};
+    const p=parseInt($("pres").value.replace(/\D/g,""),10); if(p) fila.presupuesto_cop=p;
+    const {error}=await db.from("obras").insert(fila);
+    if(error) throw error;
+    ["p1","p2","p3"].forEach(id=>$(id).classList.add("hide")); $("fin").classList.remove("hide"); $("paso").textContent="Listo"; $("barra").style.width="100%";
+  }catch(e){
+    aviso("No pudimos publicar. Toma una captura de este mensaje: "+(e.message||e),"err");
+  }finally{ $("pub").disabled=false; $("pub").textContent="Publicar obra"; }
+};
+$("otra").onclick=()=>{ lista=[]; categoria=null; ["titulo","desc","pres"].forEach(i=>$(i).value=""); document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed","false")); pintarFotos(); $("fin").classList.add("hide"); ir(1); };
+
+$("entrar").onclick = async () => {
+  const {error}=await db.auth.signInWithPassword({email:$("lc").value.trim(), password:$("lk").value});
+  if(error) return alert("Correo o clave incorrectos.");
+  iniciar();
+};
+
+async function iniciar(){
+  const {data}=await db.auth.getSession(); user=data.session?data.session.user:null;
+  $("login").classList.toggle("hide", !!user); $("flujo").classList.toggle("hide", !user);
+  if(user){
+    const {data:p}=await db.from("perfiles").select("municipio").eq("id",user.id).maybeSingle();
+    if(p&&p.municipio&&!$("mun").value) $("mun").value=p.municipio;
+  }
+}
+iniciar();
+</script>
+</body>
+</html>

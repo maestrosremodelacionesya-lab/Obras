@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Obras para cotizar</title>
+<style>
+:root{--ink:#14232b;--wall:#f3f4f2;--card:#fff;--line:#d3d8d4;--blue:#0f4c5c;--tape:#f2c230;--err:#b3261e;--ok:#1b6b3a}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--wall)}
+.tape{height:34px;background:var(--tape);background-image:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 12px),repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 60px);background-size:100% 10px,100% 18px;background-repeat:repeat-x;background-position:left bottom}
+main{max-width:480px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:25px;line-height:1.15;margin:6px 0 4px}
+.sub{margin:0 0 14px;color:#44545c}
+label{display:block;font-weight:600;margin:12px 0 6px}
+input,select,textarea{width:100%;padding:13px;border:1.5px solid var(--line);border-radius:10px;font:inherit;background:var(--card);color:var(--ink)}
+textarea{min-height:80px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:3px solid var(--tape);outline-offset:1px;border-color:var(--blue)}
+.go{width:100%;padding:15px;border:0;border-radius:12px;background:var(--blue);color:#fff;font:inherit;font-weight:700;font-size:16px;cursor:pointer;margin-top:12px}
+.go:disabled{opacity:.55}
+.sec{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);font:inherit;font-weight:600;color:var(--ink);cursor:pointer;margin-top:8px}
+.filtros{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px}
+.obra{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px;margin-top:14px}
+.fotos{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px}
+.fotos img{height:150px;width:auto;border-radius:10px;flex:none}
+.obra h2{font-size:18px;margin:0 0 4px}
+.meta{color:#44545c;font-size:14px;margin:2px 0}
+.desc{margin:8px 0 0;font-size:15px}
+.pres{display:inline-block;background:#fdf3c9;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600;margin-top:6px}
+.ya{display:block;text-align:center;padding:12px;color:var(--ok);font-weight:700}
+#msg{margin-top:14px;padding:12px 14px;border-radius:10px;font-weight:600;display:none;word-break:break-word}
+#msg.err{display:block;background:#fbe9e7;color:var(--err)}
+#msg.ok{display:block;background:#e4f3ea;color:var(--ok)}
+.hide{display:none}
+.vacio{text-align:center;color:#44545c;padding:30px 10px}
+.lmsg{margin-top:12px;padding:12px 14px;border-radius:10px;font-weight:600;background:#fbe9e7;color:#b3261e;display:none;word-break:break-word}.ver{background:none;border:0;color:var(--blue);font:inherit;text-decoration:underline;padding:8px 0;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="tape" aria-hidden="true"></div>
+<main>
+
+<section id="login" class="hide">
+  <h1>Entra para cotizar</h1>
+  <p class="sub">Usa el correo de tu cuenta de profesional.</p>
+  <label for="lc">Correo</label><input id="lc" type="email" autocomplete="email" inputmode="email">
+  <label for="lk">Clave</label><input id="lk" type="password" autocomplete="current-password">
+  <button class="ver" id="ver" type="button">Ver clave</button>
+  <button class="go" id="entrar">Entrar</button>
+  <div class="lmsg" id="lmsg" role="alert"></div>
+</section>
+
+<section id="bloqueo" class="hide">
+  <h1>Esta cuenta es de cliente</h1>
+  <p class="sub">Cotizar es solo para cuentas de profesional o empresa. Tu espacio es publicar obras y recibir cotizaciones.</p>
+  <button class="go" id="salir">Cerrar sesión</button>
+</section>
+
+<section id="lista-sec" class="hide">
+  <h1>Obras para cotizar</h1>
+  <p class="sub">Obras abiertas. Envía tu precio y el cliente te escribe por el chat.</p>
+  <div class="filtros">
+    <div><label for="fmun">Ciudad</label><input id="fmun" placeholder="Ej: Bogotá"></div>
+    <div><label for="fcat">Tipo</label>
+      <select id="fcat"><option value="">Todos</option></select></div>
+  </div>
+  <div id="lista"></div>
+  <button class="sec" id="salir2">Cerrar sesión</button>
+  <div id="msg" role="status" aria-live="polite"></div>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://pdlqfuywmqubnlreqwkc.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_81UvQuLGPU8UrlYg4H9rSw_oKK7vy0F";
+const CATS = {remodelacion:"Remodelación o acabados",pintura:"Pintura",drywall:"Drywall",electrico:"Eléctrico",plomeria:"Plomería",carpinteria:"Carpintería",mantenimiento:"Mantenimiento"};
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+let user=null, obras=[], mias=new Set();
+
+Object.entries(CATS).forEach(([v,e])=>{ const o=document.createElement("option"); o.value=v; o.textContent=e; $("fcat").append(o); });
+function aviso(t,c){ const m=$("msg"); m.className=c; m.textContent=t; }
+function limpiar(){ $("msg").className=""; $("msg").textContent=""; }
+function el(tag,cls,txt){ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!==undefined) e.textContent=txt; return e; }
+const norm = s => (s||"").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+
+function pintar(){
+  const L=$("lista"); L.innerHTML="";
+  const fm=norm($("fmun").value.trim()), fc=$("fcat").value;
+  const vis=obras.filter(o=>(!fm||norm(o.municipio).includes(fm))&&(!fc||o.categoria===fc));
+  if(!vis.length){ L.append(el("div","vacio","No hay obras abiertas con esos filtros por ahora.")); return; }
+  vis.forEach(o=>{
+    const c=el("div","obra");
+    const fs=el("div","fotos");
+    (Array.isArray(o.fotos)?o.fotos:[]).filter(u=>typeof u==="string"&&u.startsWith("https://")).forEach(u=>{ const im=el("img"); im.src=u; im.alt="Foto de la obra"; im.loading="lazy"; fs.append(im); });
+    if(fs.children.length) c.append(fs);
+    c.append(el("h2","",o.titulo), el("div","meta",(CATS[o.categoria]||o.categoria)+" · "+(o.municipio||"")));
+    if(o.presupuesto_cop) c.append(el("span","pres","Presupuesto $"+Number(o.presupuesto_cop).toLocaleString("es-CO")));
+    if(o.descripcion) c.append(el("p","desc",o.descripcion));
+    if(mias.has(o.id)){ c.append(el("span","ya","✓ Ya enviaste tu cotización")); }
+    else{
+      const b=el("button","go","Cotizar esta obra"), f=el("div","hide");
+      f.innerHTML='<label>Tu precio total (pesos)</label><input class="pr" inputmode="numeric" placeholder="Ej: 1200000"><label>Días para terminar</label><input class="di" inputmode="numeric" placeholder="Ej: 5"><label>Mensaje al cliente</label><textarea class="ms" maxlength="300" placeholder="Qué incluye tu precio, materiales, garantía..."></textarea>';
+      const e=el("button","go","Enviar cotización"); f.append(e);
+      b.onclick=()=>{ f.classList.toggle("hide"); };
+      e.onclick=()=>enviar(o,f,e);
+      c.append(b,f);
+    }
+    L.append(c);
+  });
+}
+
+async function enviar(o,f,btn){
+  limpiar();
+  const precio=parseInt(f.querySelector(".pr").value.replace(/\D/g,""),10), dias=parseInt(f.querySelector(".di").value.replace(/\D/g,""),10), msj=f.querySelector(".ms").value.trim();
+  if(!precio||precio<=0) return aviso("Escribe tu precio en pesos.","err");
+  if(!dias||dias<=0) return aviso("Escribe en cuántos días terminas.","err");
+  if(msj.length<10) return aviso("Escribe un mensaje de al menos 10 letras.","err");
+  btn.disabled=true; btn.textContent="Enviando...";
+  const {error}=await db.from("cotizaciones").insert({obra_id:o.id, profesional_id:user.id, precio_cop:precio, dias:dias, mensaje:msj});
+  btn.disabled=false; btn.textContent="Enviar cotización";
+  if(error){
+    if(/duplicate|unique/i.test(error.message)){ mias.add(o.id); pintar(); return aviso("Ya habías cotizado esta obra.","err"); }
+    return aviso("No pudimos enviar. Toma una captura de este mensaje: "+error.message,"err");
+  }
+  mias.add(o.id); pintar(); aviso("Cotización enviada. El cliente la verá en su lista.","ok");
+}
+
+async function cargar(){
+  $("lista").textContent="Cargando...";
+  const [o,c]=await Promise.all([db.from("obras").select("*").eq("estado","abierta"), db.from("cotizaciones").select("obra_id").eq("profesional_id",user.id)]);
+  if(o.error){ $("lista").textContent=""; return aviso("No pudimos cargar las obras. Toma una captura: "+o.error.message,"err"); }
+  obras=(o.data||[]).sort((a,b)=>String(b.creado_en||"").localeCompare(String(a.creado_en||"")));
+  mias=new Set((c.data||[]).map(x=>x.obra_id));
+  pintar();
+}
+$("fmun").oninput=pintar; $("fcat").onchange=pintar;
+
+$("ver").onclick=()=>{ const k=$("lk"); k.type=k.type==="password"?"text":"password"; $("ver").textContent=k.type==="password"?"Ver clave":"Ocultar clave"; };
+$("entrar").onclick=async()=>{
+  const m=$("lmsg"); m.style.display="none";
+  const {error}=await db.auth.signInWithPassword({email:$("lc").value.trim().toLowerCase(),password:$("lk").value.trim()});
+  if(error){ m.textContent="No pudimos entrar: "+error.message; m.style.display="block"; return; }
+  iniciar();
+};
+async function salir(){ await db.auth.signOut(); iniciar(); }
+$("salir").onclick=salir; $("salir2").onclick=salir;
+
+async function iniciar(){
+  const {data}=await db.auth.getSession(); user=data.session?data.session.user:null;
+  let rol=null;
+  if(user){ const r=await db.from("perfiles").select("rol").eq("id",user.id).maybeSingle(); rol=r.data?r.data.rol:null; }
+  const esPro = rol==="profesional";
+  $("login").classList.toggle("hide",!!user);
+  $("bloqueo").classList.toggle("hide",!(user&&!esPro));
+  $("lista-sec").classList.toggle("hide",!(user&&esPro));
+  if(user&&esPro) cargar();
+}
+iniciar();
+</script>
+</body>
+</html>
